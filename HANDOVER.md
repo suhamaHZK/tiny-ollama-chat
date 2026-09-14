@@ -1,6 +1,6 @@
 # Tiny Ollama Chat — 引継書（HANDOVER）
 
-最終更新: 2026-09-14（Asia/Tokyo）
+最終更新: 2026-09-15（Asia/Tokyo）
 
 この文書は、Cursor アカウント移行後にプロジェクトを引き継ぐためのコンテキストです。  
 **秘密情報（ホスト名・IP・ポート・SSHユーザー・Ollama URL・鍵・Webhook 等）は一切書いていません。** 接続先は引き継ぎ先アカウント側でユーザーから再度受け取ってください。
@@ -40,7 +40,8 @@
 
 | 版 | 要点 |
 |----|------|
-| **v0.1.4-pi2**（最新） | Think 可否をモデル名ヒューリスティックから **`POST /api/show` の `capabilities` に `thinking` があるか**へ。Client 単位キャッシュ。show 失敗時は旧 `ThinkParam` にフォールバック。gpt-oss は対応時 `"medium"` |
+| **v0.1.5-pi2**（最新） | AgentSandbox Edge で生成完了後 UI が空白になる不具合を修正。`done.Content` ペイロード、クライアントが clear 前に refs/done をコミット、done 後 HTTP reload、ChatView は live `currentResponse` が空なら store 表示、最初の answer chunk を即 flush |
+| v0.1.4-pi2 | Think 可否をモデル名ヒューリスティックから **`POST /api/show` の `capabilities` に `thinking` があるか**へ。Client 単位キャッシュ。show 失敗時は旧 `ThinkParam` にフォールバック。gpt-oss は対応時 `"medium"` |
 | v0.1.3-pi2 | Think 中も**本文がライブストリーム表示**されるようクライアント修正（`currentResponse` + rAF、WS ハンドラ mount 一度だけ） |
 | v0.1.2-pi2 | Think 付け分け・生成単一飛行・送信ロック・ストリーム中プレーンテキスト |
 | v0.1.1 / v0.1.0 | 送信ロック解除、オフライン履歴閲覧、2通目 `convo_id` など |
@@ -48,7 +49,8 @@
 Release 一覧: https://github.com/suhamaHZK/tiny-ollama-chat/releases  
 
 Pi2 向けアセット（各タグ）: `tiny-ollama-chat`（ELF32 ARM）、`tiny-ollama-chat.xz`、`static-pi2.tar.gz`、`FIXES.md`  
-**v0.1.4-pi2** バイナリ SHA256: `0e464e7df85859a55afc8160818c47b0a041b2a505c72e4bbb8702d745f92486`
+**v0.1.5-pi2** バイナリ SHA256: `430aa178b7e8ca9cebe4ad63cd61165a3f2e1762d290871692dd3bb6a0b93269`
+旧 **v0.1.4-pi2** SHA256: `0e464e7df85859a55afc8160818c47b0a041b2a505c72e4bbb8702d745f92486`
 
 詳細な修正メモはリポジトリ根の `FIXES.md`（Release 同梱版もあり）。
 
@@ -61,6 +63,7 @@ Pi2 向けアセット（各タグ）: `tiny-ollama-chat`（ELF32 ARM）、`tiny
 1. **OpenWebUI と Tiny の差**: 同一モデルで OpenWebUI は本文ストリームするのに Tiny だけ本文が一括、という症状があった。  
    - Ollama 生 NDJSON と Tiny の **WS 転送は content チャンクを出せていた** → サーバ／転送は概ね OK。  
    - 本命は **クライアント描画**（v0.1.3 で対処）。  
+   - v0.1.5: 生成完了後に live を clear して store が空だと空白になるレースを、`done.Content` + clear 前コミット + HTTP reload + store フォールバック表示で修正。  
 2. **Think を切る案はユーザー却下**。可能な限り Think 有効のまま本文もストリームしたい。  
 3. **カスタム Gemma E4B 系**: show / tags で `capabilities: ["completion"]` のみのことがあり、`think:true` すると 400 `does not support thinking`。v0.1.4 の show 判定が正攻法。名前に `e4b` を含むヒューリスティックもフォールバックに残存。  
 4. **gpt-oss**: boolean の think は無視され、`"low"|"medium"|"high"` が必要 → 対応時は `"medium"`。  
@@ -142,4 +145,4 @@ cd server && go test ./internal/ollama/...
 
 ## 7. 旧 Bot からの一文サマリ
 
-> Pi2 向け Tiny Ollama Chat は v0.1.4 までで「Think は show の capabilities、本文はクライアントでライブ表示」まで到達。バイナリは Releases。秘密はリポジトリに無いので接続先はユーザーから再受領。Cloud Agent が使えるなら以降はクラウド実装＋ Release 更新が素直。一時 SSH は使い終わったら必ず閉じる。
+> Pi2 向け Tiny Ollama Chat は v0.1.5 までで「Think は show の capabilities、本文ライブ表示、生成完了後の blank UI 修正」まで到達。バイナリは Releases。秘密はリポジトリに無いので接続先はユーザーから再受領。Cloud Agent が使えるなら以降はクラウド実装＋ Release 更新が素直。一時 SSH は使い終わったら必ず閉じる。
