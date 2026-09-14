@@ -83,7 +83,16 @@ Pi2 向けアセット（各タグ）: `tiny-ollama-chat`（ELF32 ARM）、`tiny
 
 - バイナリ配布の正は **GitHub Releases**。  
 - 旧作業では fork へのソース push が失敗しやすく、**しばらく Release だけが先に進んでいた**時期がある。  
-- 本引継ぎで **v0.1.4 相当ソース（`ResolveThink` 等）と本 `HANDOVER.md` を `main` に載せる**。引き継いだら `git pull` し、`go test` と必要なら `build-pi.sh` を最初に確認してください。
+- 本引継ぎでは:
+
+- **`main`**: 少なくとも `HANDOVER.md` を配置（旧 main は README 中心だった）。
+- **`source-v014` ブランチ**: v0.1.4 相当の**ソース一式**（`ResolveThink` 含む）を単一コミットで同期。フル履歴の force push は GitHub unpack 制限で失敗しやすいため、このブランチを正として clone してください。
+
+```bash
+git clone -b source-v014 https://github.com/suhamaHZK/tiny-ollama-chat.git
+cd tiny-ollama-chat
+cd server && go test ./internal/ollama/...
+```
 
 ---
 
