@@ -1,0 +1,40 @@
+static
+/build
+/bin/
+/pkg/
+/*.exe
+/*.out
+/*.test
+/*.so
+/*.dll
+/*.dylib
+
+# Go Modules & Dependencies
+/go.sum
+/go.work
+/go.work.sum
+/vendor/
+
+# IDE & Editor Configurations
+.vscode/
+.idea/
+*.iml
+
+# Logs & Debugging Files
+*.log
+*.trace
+*.prof
+*.cov
+
+# OS-specific Files
+.DS_Store
+Thumbs.db
+
+# Temporary Files
+*.tmp
+*.swp
+*.swo
+*.bak
+
+# Docker
+docker-compose.override.yml

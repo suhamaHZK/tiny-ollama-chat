@@ -1,0 +1,77 @@
+# ===============================
+# Go (backend)
+# ===============================
+
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Build outputs
+*.out
+*.test
+coverage.out
+
+#Ignoring DB files
+*.db
+
+
+# Build directories
+/bin/
+/build/
+/pkg/
+
+# Vendor directory (if using vendoring; if you use Go modules, you might want to keep vendor checked in)
+vendor/
+
+# Module cache (if applicable; not needed in repo)
+# /go/pkg/mod/
+
+# IDE/Editor files for Go
+.idea/
+.vscode/
+
+# ===============================
+# Node / React + TypeScript (frontend)
+# ===============================
+
+# Dependency directories
+node_modules/
+
+# Build output (for Create React App, Gatsby, etc.)
+build/
+dist/
+
+# Cache directories
+.cache/
+.npm/
+
+# Optional ESLint cache
+.eslintcache
+
+# Log files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment variable files (if you use them; adjust as needed)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+tiny-ollama-chat
+.DS_Store
+
+# Explicitly keep LICENSE file
+!LICENSE
+
+
+# Pi cross-build output (binaries via GitHub Releases)
+build-pi/
+
+
+# Windows sandbox build output
+build-win/
