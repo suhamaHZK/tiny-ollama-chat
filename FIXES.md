@@ -1,5 +1,53 @@
 # Tiny Ollama Chat — fixes applied 2026-09-15 (JST / Asia/Tokyo)
 
+## v0.1.8-pi2 — unlock stuck `isGenerating` after answer completes
+
+### Symptom (after v0.1.7 “ideal” retest)
+- Answer text complete in UI (plain live preview), but toast/lock stays “Generating… please wait until it finishes”
+- No Markdown render (still treated as streaming); browser refresh → Markdown + unlocked
+- Server: think→response→done→DB save OK; WS coalesce flush OK; poll did not recover
+
+### Root cause
+- `response_done` called `stopPollFallback()` **before** store commits, then if commit threw (or done was missed), `isGenerating` stayed true with poll already dead — no HTTP recovery path.
+
+### Fix
+1. **`settleGenerating(reason)`** always: clearGeneratingTimeout, stopPollFallback, setIsThinking(false), markGenerating(false), clear live refs/previews, setConversationStreaming(false), navigateWhenReady.
+2. **`response_done` / `error`**: try/catch around store commits; **`settleGenerating` in `finally`**. Do **not** stop poll at the start of `response_done`.
+3. **Poll stays alive** until generating is false; interval **~600ms**.
+4. **Idle auto-settle**: while generating, if live response/thinking is non-empty and has not grown for **~1.2s**, HTTP GET conversation + `applyRemoteAssistantAndSettle` (force unlock if HTTP keeps failing after longer idle).
+5. **ChatView**: if `isGenerating` with non-empty `currentResponse` stable **>3s**, force `settleGenerating` + `reloadConversationMessages` (then store Message renders Markdown).
+6. **Server**: if WriteJSON done-with-content fails, retry done with **empty content** so client unlocks.
+
+## v0.1.7-pi2 — HTTP poll fallback + fewer WS frames (AgentSandbox Edge)
+
+### Symptom (still on v0.1.6)
+- Server finishes start→think→done→DB save in ~3s; raw WS on Pi2 localhost delivers all frames.
+- AgentSandbox Edge still shows no live update until full page reload.
+- Served JS was `index-KvOQePwr.js` from `~/tiny-ollama-chat-v016`.
+
+### Fix
+1. **Client poll safety net** (`WebSocketProvider`): while `isGenerating`, every ~1.5s `GET /api/conversations/:activeConvoId`. If remote has an assistant with non-empty Content/Thinking, merge into Zustand, clear thinking/generating/streaming/live refs (same outcome as manual refresh). Stop on done/error/unmount.
+2. **Never skeleton over live UI** (`ChatView`): render `MessageSkeleton` only when `isMessagesLoading && !isGenerating`. Hard-skip `getConversation` while `isGeneratingRef` / streaming (do not await it).
+3. **Defer `navigate(/chat/:id)`** until first `response_chunk` or `response_done` (or poll settle). New Chat `/` shows live Generating/Thinking/answer while generating even without route id.
+4. **Server WS coalesce** (`handler.go` `appendThinking`/`appendContent`): buffer pieces and flush ≤ every 50ms (force on `thinking_end` / before done). Log flush counts once per generation.
+
+## v0.1.6-pi2 — client fetch race + stream update thrash (AgentSandbox Edge)
+
+### Symptom
+- AgentSandbox Edge (even InPrivate): UI stuck on **Thinking** until full refresh.
+- Raw WS from localhost shows full stream (`conversation_started` → `thinking_*` → `response_chunk*` → `done` with content).
+- Refresh shows the saved answer → **server OK**; remaining bug is client/UI under AgentSandbox→Pi2 latency.
+
+### Root cause
+1. **Fetch race**: On `conversation_started`, client `navigate(/chat/:id)` then ChatView `useEffect([id])` calls `getConversation(id)`. Under latency that HTTP can return **after** WS `done` committed the assistant into Zustand and **overwrite** `selectedConversation` with a stale/partial payload (or set `isMessagesLoading` and hide live Thinking/answer behind skeletons).
+2. **Update thrash**: Hundreds of `thinking_chunk` / `response_chunk` events each calling Zustand `updateMessageContent` starve paints on a slow VM, so live `currentResponse` never appears and the UI stays on Thinking.
+
+### Fix
+1. **ChatView / store**: Skip cold `getConversation` when mid-generate (`isGenerating` + matching id), when `streamingConversationIds[id]`, or when the store already has that conversation (e.g. just `createNewConversation`). In-flight HTTP results are ignored if `streamLocalVersion` advanced or streaming is active; reload keeps local assistant if remote is missing it.
+2. **WebSocketProvider**: During stream, live UI stays on **refs + rAF previews** only — **no** `updateMessageContent` on every `response_chunk`. Commit to store on `response_done` (placeholder still created on `thinking_end` / first chunk). Clear `streamingConversationIds` after done/error/disconnect.
+3. Keep `done.Content` fallback + `reloadConversationMessages` after done.
+4. `thinking_end` / `response_done` / answer chunks **always** clear `isThinking` even if content is empty.
+
 ## v0.1.5-pi2 — live-UI blank after generate (AgentSandbox Edge)
 
 ### Symptom
